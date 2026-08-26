@@ -7,7 +7,7 @@
 - [ ] zip 由 `pnpm theme:pack` 产出，自检报告全绿
 - [ ] theme.json 的 version 已递增（更新场景）
 - [ ] 文件夹内含 README.md（截图/特性/安装/许可证/更新日志）与 shots/
-- [ ] 根 README 一览表已加行 / 已更新
+- [ ] theme.json 已含 `description` 字段（根 README 一览表由 CI 合入后自动重建）
 - [ ] 许可证为 AGPL-3.0-or-later 或兼容协议
 - [ ] 截图真实反映当前版本
 

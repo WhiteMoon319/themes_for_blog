@@ -10,7 +10,7 @@ cd blog && pnpm install
 BLOG_THEME=<slug> pnpm dev      # 实时预览调试
 ```
 
-契约与目录规范见主仓 `docs/theme-switcher-plan.md` §2，要点：
+契约与目录规范见同目录 [THEME_DEVELOPMENT.md](./THEME_DEVELOPMENT.md)，要点：
 
 ```
 <slug>/
@@ -39,7 +39,7 @@ pnpm theme:pack src/themes/<slug>
    - `<slug>.zip` —— theme:pack 产物
    - `README.md` —— 必需小节：截图、特性介绍、安装方法、许可证、更新日志
    - `shots/` —— 预览图（README 引用）
-2. 根 `README.md` 一览表加一行；
+2. 在 theme.json 中写好 `description`（一句话简介，供一览表自动生成）；根 README 一览表由 CI 合入后自动重建，无需手改；
 3. PR 描述附效果截图与契约版本声明。
 
 **版本更新** = 替换同文件夹内 zip，且 theme.json 的 `version` 必须递增（CI 强制）。
