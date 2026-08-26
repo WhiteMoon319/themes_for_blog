@@ -59,7 +59,7 @@ if (readme.includes(START) && readme.includes(END)) {
 
 if (out !== readme) {
   writeFileSync(README, out);
-  console.log('README 一览表已更新');
-  process.exit(1); // 有变更时以非零退出，便于 CI 判断
+  console.log('CHANGED: README 一览表已更新（由工作流依据 git status 提交）');
+} else {
+  console.log('UNCHANGED: README 一览表已是最新');
 }
-console.log('README 一览表已是最新');
