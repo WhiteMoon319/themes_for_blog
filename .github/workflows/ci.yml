@@ -1,0 +1,90 @@
+name: theme-prereview
+
+on:
+  pull_request:
+    paths:
+      - "**/*.zip"
+      - "**/README.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BLOG_REPO: WhiteMoon319/blog_for_WhiteMoon319
+  BLOG_ENGINE_REF: main
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Locate changed theme folders
+        id: changed
+        run: |
+          SLUGS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            | grep -oE '^[^/]+/' | tr -d '/' | sort -u | grep -vE '^\.github$' | tr '\n' ' ')
+          echo "slugs=$SLUGS" >> "$GITHUB_OUTPUT"
+          echo "changed themes: $SLUGS"
+
+      - name: Fetch pinned blog engine
+        run: git clone --depth 1 --branch "$BLOG_ENGINE_REF" "https://github.com/$BLOG_REPO.git" _blog
+
+      - name: Install engine deps (fflate for validator)
+        working-directory: _blog
+        run: pnpm install --prefer-offline
+
+      - name: Review each theme
+        env:
+          SLUGS: ${{ steps.changed.outputs.slugs }}
+        run: |
+          set -e
+          for slug in $SLUGS; do
+            echo "::group::== $slug =="
+            test -f "$slug/$slug.zip" || { echo "missing $slug/$slug.zip"; exit 1; }
+
+            # 1) 硬限制 + 契约 + 敏感导入（共享校验器，来自主仓）
+            node _blog/scripts/lib/theme-validate.mjs check-zip "$slug/$slug.zip"
+
+            # 2) 版本递增（更新场景）
+            if git cat-file -e "origin/${{ github.base_ref }}:$slug/$slug.zip" 2>/dev/null; then
+              git show "origin/${{ github.base_ref }}:$slug/$slug.zip" > /tmp/old.zip
+              OLD_V=$(node _blog/scripts/lib/theme-validate.mjs meta /tmp/old.zip | jq -r .version)
+              NEW_V=$(node _blog/scripts/lib/theme-validate.mjs meta "$slug/$slug.zip" | jq -r .version)
+              [ "$NEW_V" != "$OLD_V" ] || { echo "version 未递增 ($OLD_V)"; exit 1; }
+              echo "version $OLD_V -> $NEW_V"
+            fi
+
+            # 3) 解包树 + 与上一版语义 diff → artifact
+            mkdir -p "/tmp/unpack/$slug" /tmp/review-artifacts
+            node _blog/scripts/lib/theme-validate.mjs unpack "$slug/$slug.zip" "/tmp/unpack/$slug"
+            if [ -f /tmp/old.zip ]; then
+              mkdir -p "/tmp/unpack-old/$slug"
+              node _blog/scripts/lib/theme-validate.mjs unpack /tmp/old.zip "/tmp/unpack-old/$slug"
+              diff -ru "/tmp/unpack-old/$slug" "/tmp/unpack/$slug" > "/tmp/review-artifacts/$slug.semantic.diff" || true
+            fi
+            cp -r "$slug" "/tmp/review-artifacts/folder-$slug"
+
+            # 4) 构建冒烟：注入主题后整链构建
+            cd _blog
+            printf 'BLOG_D1_ID=00000000-0000-0000-0000-000000000000\n' > .env
+            rm -rf "src/themes/$slug"
+            node scripts/lib/theme-validate.mjs unpack "../$slug/$slug.zip" "src/themes/$slug"
+            BLOG_THEME=$slug pnpm run build
+            cd ..
+
+            echo "::endgroup::"
+          done
+
+      - name: Upload review artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-review
+          path: /tmp/review-artifacts/
