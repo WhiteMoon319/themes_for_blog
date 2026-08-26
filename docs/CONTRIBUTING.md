@@ -37,8 +37,8 @@ pnpm theme:pack src/themes/<slug>
 
 1. fork 本仓库，新增 `<slug>/` 文件夹：
    - `<slug>.zip` —— theme:pack 产物
-   - `README.md` —— 必需小节：截图、特性介绍、安装方法、许可证、更新日志
-   - `shots/` —— 预览图（README 引用）
+   - `README.md` —— 必需小节：截图、特性介绍、安装方法、许可证、更新日志（CI 校验这些标题存在）
+   - `shots/` —— 预览图，至少一张，README 引用（CI 强制存在）
 2. 在 theme.json 中写好 `description`（一句话简介，供一览表自动生成）；根 README 一览表由 CI 合入后自动重建，无需手改；
 3. PR 描述附效果截图与契约版本声明。
 
