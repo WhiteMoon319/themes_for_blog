@@ -13,7 +13,10 @@ concurrency:
 
 env:
   BLOG_REPO: WhiteMoon319/blog_for_WhiteMoon319
-  BLOG_ENGINE_REF: main
+  BLOG_ENGINE_REF: ${{ vars.BLOG_ENGINE_REF || 'main' }}
+
+permissions:
+  contents: read
 
 jobs:
   review:
@@ -34,11 +37,15 @@ jobs:
       - name: Locate changed theme folders
         id: changed
         run: |
-          SLUGS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+          SLUGS=$(git diff --name-only "origin/${BASE_REF}" \
             | grep -oE '^[^/]+/' | tr -d '/' | sort -u \
             | while read -r d; do [ -f "$d/$d.zip" ] && printf '%s ' "$d"; done)
-          echo "slugs=$SLUGS" >> "$GITHUB_OUTPUT"
-          echo "changed themes: $SLUGS"
+          # 白名单过滤：只接受合法 slug（防换行/空格注入 GITHUB_OUTPUT）
+          SLUGS=$(echo "$SLUGS" | tr ' ' '\n' | grep -E '^[a-z0-9][a-z0-9-]{1,30}$' | tr '\n' ' ')
+          printf 'slugs=%s\n' "$SLUGS" > "$GITHUB_OUTPUT"
+          echo "changed themes: [$SLUGS]"
+        env:
+          BASE_REF: ${{ github.base_ref }}
 
       - name: Fetch pinned blog engine
         run: git clone --depth 1 --branch "$BLOG_ENGINE_REF" "https://github.com/$BLOG_REPO.git" _blog
@@ -52,20 +59,25 @@ jobs:
           SLUGS: ${{ steps.changed.outputs.slugs }}
         run: |
           set -e
+          [ -n "$SLUGS" ] || { echo "no theme folders changed (仅文档/CI 变更)，跳过"; exit 0; }
           for slug in $SLUGS; do
             echo "::group::== $slug =="
             test -f "$slug/$slug.zip" || { echo "missing $slug/$slug.zip"; exit 1; }
+            # 三件套齐全：README 与 shots（人工审核兜底，CI 也要求存在）
+            test -f "$slug/README.md" || { echo "missing $slug/README.md（必需：截图/特性/安装/许可/更新日志）"; exit 1; }
+            test -d "$slug/shots" || { echo "warning: $slug 缺 shots/ 预览图目录（建议补）"; }
 
-            # 1) 硬限制 + 契约 + 敏感导入（共享校验器，来自主仓）
-            node _blog/scripts/lib/theme-validate.mjs check-zip "$slug/$slug.zip"
+            # 1) 硬限制 + 契约 + 敏感导入 + slug 一致性（共享校验器，来自主仓）
+            node _blog/scripts/lib/theme-validate.mjs check-zip "$slug/$slug.zip" "$slug"
 
-            # 2) 版本递增（更新场景）
-            if git cat-file -e "origin/${{ github.base_ref }}:$slug/$slug.zip" 2>/dev/null; then
-              git show "origin/${{ github.base_ref }}:$slug/$slug.zip" > /tmp/old.zip
+            # 2) 版本严格递增（更新场景）
+            if git cat-file -e "origin/${BASE_REF}:$slug/$slug.zip" 2>/dev/null; then
+              git show "origin/${BASE_REF}:$slug/$slug.zip" > /tmp/old.zip
               OLD_V=$(node _blog/scripts/lib/theme-validate.mjs meta /tmp/old.zip | jq -r .version)
               NEW_V=$(node _blog/scripts/lib/theme-validate.mjs meta "$slug/$slug.zip" | jq -r .version)
-              [ "$NEW_V" != "$OLD_V" ] || { echo "version 未递增 ($OLD_V)"; exit 1; }
-              echo "version $OLD_V -> $NEW_V"
+              node -e "const a=process.argv[1],b=process.argv[2];const f=s=>s.split('.').map(Number);const cmp=(x,y)=>{for(let i=0;i<3;i++){if((x[i]??0)!==(y[i]??0))return (x[i]??0)>(y[i]??0)?1:-1}return 0};process.exit(cmp(f(a),f(b))>0?0:1)" "$NEW_V" "$OLD_V" \
+                || { echo "version 必须严格递增：$OLD_V -> $NEW_V"; exit 1; }
+              echo "version $OLD_V -> $NEW_V (递增 ✓)"
             fi
 
             # 3) 解包树 + 与上一版语义 diff → artifact
@@ -78,19 +90,22 @@ jobs:
             fi
             cp -r "$slug" "/tmp/review-artifacts/folder-$slug"
 
-            # 4) 构建冒烟：注入主题后整链构建
+            # 4) 构建冒烟：注入主题后整链构建（隔离 runner、只读 token）
             cd _blog
             printf 'BLOG_D1_ID=00000000-0000-0000-0000-000000000000\n' > .env
             rm -rf "src/themes/$slug"
             node scripts/lib/theme-validate.mjs unpack "../$slug/$slug.zip" "src/themes/$slug"
-            BLOG_THEME=$slug pnpm run build
+            BLOG_THEME="$slug" pnpm run build
             cd ..
 
             echo "::endgroup::"
           done
+        env:
+          BASE_REF: ${{ github.base_ref }}
 
       - name: Upload review artifacts
         uses: actions/upload-artifact@v4
         with:
           name: theme-review
+          if-no-files-found: ignore
           path: /tmp/review-artifacts/
