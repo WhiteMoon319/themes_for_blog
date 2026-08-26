@@ -8,7 +8,7 @@
 | 主题 | 简介 | 版本 / 契约 |
 |---|---|---|
 | [Starter 起步模板](./starter/) | classic 纸墨风的可直接改造副本 | v1.0.1 · engine 1 |
-| [Wildfire 野火](./wildfire/) | 暖象牙纸面 + 火焰渐变签名 + 切角几何的现代竞技风 | v1.0.0 · engine 1 |
+| [Wildfire 野火](./wildfire/) | 暖象牙纸面 + 火焰渐变签名 + 切角几何的现代竞技风 | v1.0.1 · engine 1 |
 <!-- THEMES:END -->
 
 > 本表由 CI 在合入 main 后自动重建（`scripts/build-index.mjs`），请勿手工编辑标记区间；投稿时在 **theme.json 内** 写好 `description` 即可。
