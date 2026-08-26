@@ -63,9 +63,15 @@ jobs:
           for slug in $SLUGS; do
             echo "::group::== $slug =="
             test -f "$slug/$slug.zip" || { echo "missing $slug/$slug.zip"; exit 1; }
-            # 三件套齐全：README 与 shots（人工审核兜底，CI 也要求存在）
-            test -f "$slug/README.md" || { echo "missing $slug/README.md（必需：截图/特性/安装/许可/更新日志）"; exit 1; }
-            test -d "$slug/shots" || { echo "warning: $slug 缺 shots/ 预览图目录（建议补）"; }
+            # 三件套齐全：README（含必需标题）与 shots（均硬要求）
+            test -f "$slug/README.md" || { echo "missing $slug/README.md"; exit 1; }
+            for heading in '特性|Features' '安装|Installation' '许可|许可证|License' '更新日志|Changelog'; do
+              grep -Eqi "^#{1,6}[[:space:]]+($heading)[[:space:]]*$" "$slug/README.md" \
+                || { echo "README 缺少必需小节标题：$heading"; exit 1; }
+            done
+            grep -Eqi '!\[[^]]*\]\([^)]*\)' "$slug/README.md" \
+              || { echo "README 缺少截图引用"; exit 1; }
+            test -d "$slug/shots" || { echo "missing $slug/shots/（预览图目录必需）"; exit 1; }
 
             # 1) 硬限制 + 契约 + 敏感导入 + slug 一致性（共享校验器，来自主仓）
             node _blog/scripts/lib/theme-validate.mjs check-zip "$slug/$slug.zip" "$slug"
