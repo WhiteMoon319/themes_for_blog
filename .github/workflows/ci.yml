@@ -5,6 +5,7 @@ on:
     paths:
       - "**/*.zip"
       - "**/README.md"
+      - ".github/workflows/ci.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,7 +35,8 @@ jobs:
         id: changed
         run: |
           SLUGS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
-            | grep -oE '^[^/]+/' | tr -d '/' | sort -u | grep -vE '^\.github$' | tr '\n' ' ')
+            | grep -oE '^[^/]+/' | tr -d '/' | sort -u \
+            | while read -r d; do [ -f "$d/$d.zip" ] && printf '%s ' "$d"; done)
           echo "slugs=$SLUGS" >> "$GITHUB_OUTPUT"
           echo "changed themes: $SLUGS"
 
