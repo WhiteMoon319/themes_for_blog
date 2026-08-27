@@ -1,0 +1,35 @@
+name: workflow-lint
+
+# 任何工作流文件变更（含 PR 与直接推 main）都先过 js-yaml 预检，
+# 避免「无效工作流」导致的推 main 静默失败 / PR 检查缺失。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps
+        run: pnpm install --prefer-offline --frozen-lockfile
+
+      - name: Validate all workflows
+        run: node scripts/validate-workflows.mjs

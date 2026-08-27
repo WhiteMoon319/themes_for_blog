@@ -2,7 +2,11 @@
   "name": "themes_for_blog",
   "private": true,
   "type": "module",
+  "scripts": { "workflows:check": "node scripts/validate-workflows.mjs" },
   "dependencies": {
     "fflate": "^0.8.2"
+  },
+  "devDependencies": {
+    "js-yaml": "^5.4.0"
   }
 }
