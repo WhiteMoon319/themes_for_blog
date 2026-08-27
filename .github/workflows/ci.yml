@@ -39,7 +39,7 @@ jobs:
         run: |
           SLUGS=$(git diff --name-only "origin/${BASE_REF}" \
             | grep -oE '^[^/]+/' | tr -d '/' | sort -u \
-            | while read -r d; do [ -f "$d/$d.zip" ] && printf '%s ' "$d"; done)
+            | while read -r d; do [ -f "$d/$d.zip" ] && printf '%s ' "$d"; true; done)
           # 白名单过滤：只接受合法 slug（防换行/空格注入 GITHUB_OUTPUT）
           SLUGS=$(echo "$SLUGS" | tr ' ' '\n' | grep -E '^[a-z0-9][a-z0-9-]{1,30}$' | tr '\n' ' ')
           printf 'slugs=%s\n' "$SLUGS" > "$GITHUB_OUTPUT"
