@@ -6,7 +6,7 @@
 
 ```
 <slug>/
-├─ theme.json                  # 必需
+├─ theme.json                  # 必需（字段见 §2）
 ├─ layouts/BaseLayout.astro    # 硬必需（缺失拒绝安装）
 ├─ templates/                  # 核心 9 个软必需（缺失逐文件回退 classic 并警告）
 │  home / collection / post / standalone / archive
@@ -14,11 +14,16 @@
 ├─ components/                 # 可选覆盖：ArticleEnhancer / Comments / Pagination / PostLike / TagResults
 ├─ styles/tokens.css base.css  # 随 BaseLayout 引入；变量名必须与 classic 同名（见 §5）
 ├─ scripts/*.ts                # 主题自有脚本
-└─ README.md                   # 截图 / 特性 / 安装 / 许可证 / 更新日志
+├─ README.md                   # 必需：见下方「CI 强制项」
+└─ shots/                      # 必需：至少一张预览图（README 引用）
 ```
 
 认证五页 `login/register/account/logout/verify-email` 为可选模板（内含表单行为脚本，一并随模板走）。
 `preview/[id]` 不设独立模板——复用 `post` 模板的 `isPreview` 分支。
+
+**CI 强制项**（提交 PR 时硬校验，缺失即拒）：
+- `README.md` 必须包含以下小节标题之一：`特性/Features`、`安装/Installation`、`许可|许可证/License`、`更新日志/Changelog`，且至少有一处图片引用 `![...](...)`
+- `shots/` 目录必须存在（至少一张预览图，README 引用）
 
 ## 2. theme.json
 
@@ -26,9 +31,10 @@
 {
   "name": "月见草",
   "slug": "tsukimiso",          // ^[a-z0-9][a-z0-9-]{1,30}$；classic/modern 为保留字
-  "version": "1.0.0",           // semver，更新必须递增
+  "version": "1.0.0",           // semver，更新必须严格递增
   "engine_version": "1",
   "author": "...",
+  "description": "一句话简介",   // 供主题仓库一览表自动生成（build-index 读取）
   "license": "AGPL-3.0-or-later"
 }
 ```
@@ -58,6 +64,18 @@
 | `@core/SiteHead.astro` | CSP/canonical/og/twitter/noindex/RSS 封装。Props：`ctx,title?,description?,keywords?,noindex?,image?,faviconHref?,rssTitle?`。**主题不得自行拼装安全头** |
 | `@core/utils` | `postHref(slug, collectionSlug?)`、`fmtDate(iso)`、`yearOf(iso)` |
 | `@core/i18n` | `makeT(locale, dicts)`、`LOCALES`、`isLocale`、`ogLocale` |
+
+### tokens 必备变量（易踩坑）
+
+`styles/tokens.css` 的**变量名是回退组件（Comments/Pagination/PostLike/ArticleEnhancer）换肤的契约**——它们按名引用 `var(--cinnabar)`、`--ink-deep`、`--ink-soft`、`--ink-faint` 等。**最安全的做法**：从 `classic/styles/tokens.css` 整份复制，只改色值，**不要删减任何变量**（含 `--ink-soft`/`--ink-faint` 这类软色阶——缺失会让回退组件静默降级为默认色，且不会报错）。
+
+变量分四组，均需亮/暗双模式各给一套：
+- 强调：`--cinnabar` `--cinnabar-line` `--deep-blue` `--pine` `--amber` `--sky`
+- 墨色阶：`--ink-black` `--ink-deep` `--ink-mid` `--ink-light` `--ink-soft` `--ink-faint` `--hairline`
+- 纸色：`--paper-warm` `--paper-card`
+- 字体/圆角/阴影/动效：`--font-*` `--radius-*` `--shadow-*` `--ease*` `--duration*`
+
+可额外新增主题私有变量（如 `--wf-flame-grad`），但不得依赖未被 classic 定义的变量名。
 
 ### i18n 模式
 
