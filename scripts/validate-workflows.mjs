@@ -19,16 +19,25 @@ const ROOT = resolve(import.meta.dirname, '..');
 const DIR = join(ROOT, '.github', 'workflows');
 
 // GitHub Actions 骨架最小检查：每个文件须含 jobs 且至少有一步
-function checkStructure(doc, file) {
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+function checkStructure(doc) {
   const problems = [];
-  if (!doc || typeof doc !== 'object') return ['工作流顶层必须为对象'];
-  if (!doc.jobs || typeof doc.jobs !== 'object' || Object.keys(doc.jobs).length === 0) {
-    problems.push('缺少 jobs');
+  if (!isPlainObject(doc)) return ['工作流顶层必须为对象'];
+  if (!isPlainObject(doc.jobs) || Object.keys(doc.jobs).length === 0) {
+    problems.push('缺少 jobs（必须为非空对象）');
   }
   for (const [jobName, job] of Object.entries(doc.jobs ?? {})) {
-    if (!job || typeof job !== 'object') { problems.push(`job "${jobName}" 非对象`); continue; }
-    if (job['runs-on'] === undefined) problems.push(`job "${jobName}" 缺少 runs-on`);
-    if (!Array.isArray(job.steps) || job.steps.length === 0) problems.push(`job "${jobName}" 缺少 steps`);
+    if (!isPlainObject(job)) { problems.push(`job "${jobName}" 必须为对象`); continue; }
+    const ro = job['runs-on'];
+    if (ro === undefined || ro === null || ro === '') problems.push(`job "${jobName}" 缺少/空 runs-on`);
+    if (!Array.isArray(job.steps) || job.steps.length === 0) problems.push(`job "${jobName}" 缺少 steps（非空数组）`);
+    for (const [i, s] of (job.steps ?? []).entries()) {
+      if (!isPlainObject(s)) { problems.push(`job "${jobName}" steps[${i}] 非对象`); continue; }
+      if (!s.uses && !s.run && !s.if && !s.env && !s.with && !s.name) {
+        problems.push(`job "${jobName}" steps[${i}] 既无 uses 也无 run`);
+      }
+    }
   }
   return problems;
 }
@@ -48,7 +57,7 @@ for (const f of files) {
     console.error(`❌ ${f}: YAML 解析失败 → ${e.message}`);
     continue;
   }
-  const probs = checkStructure(doc, f);
+  const probs = checkStructure(doc);
   if (probs.length) {
     failed = true;
     console.error(`❌ ${f}: 结构问题\n   - ${probs.join('\n   - ')}`);
