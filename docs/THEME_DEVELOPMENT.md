@@ -13,6 +13,7 @@
 │  search / not-found / tag-index / tag-detail .astro
 ├─ components/                 # 可选覆盖：ArticleEnhancer / Comments / Pagination / PostLike / TagResults
 ├─ styles/tokens.css base.css  # 随 BaseLayout 引入；变量名必须与 classic 同名（见 §5）
+├─ assets/                     # 主题自有静态资源（图片/字体等，经 Vite 引用，见 §5.1）
 ├─ scripts/*.ts                # 主题自有脚本
 ├─ README.md                   # 必需：见下方「CI 强制项」
 └─ shots/                      # 必需：至少一张预览图（README 引用）
@@ -76,6 +77,23 @@
 - 字体/圆角/阴影/动效：`--font-*` `--radius-*` `--shadow-*` `--ease*` `--duration*`
 
 可额外新增主题私有变量（如 `--wf-flame-grad`），但不得依赖未被 classic 定义的变量名。
+
+### 5.1 主题自有资源（自包含）
+
+主题的静态资源（背景图、插图、字体等）应放 **`assets/`** 目录，并在样式/模板中用**相对路径 `url()` 或 JS import** 引用——由 Vite 构建期编译发射为带 hash 的产物（如 `/_astro/hero-bg.xxx.webp`），**绝不放进主仓 `public/`**：
+
+```css
+/* styles/base.css 内——相对自身目录引用，Vite 自动发射资源 */
+.hero {
+  background: linear-gradient(180deg, rgba(...), rgba(...)),
+    url("../assets/hero-bg.webp") center / cover no-repeat;
+}
+```
+
+- ✅ 正确：`url("../assets/x.webp")`、`import x from '../assets/x.ts'`（Vite 编译期处理，产物自动 hash 化，各主题 `assets/` 互不冲突）
+- ❌ 禁止：`url("/x.webp")` 站内绝对路径引用主题自有资源（全局共享、主题不自包含），以及任何经 `public/` 打进去的主题图片
+- 校验器已把 `.webp` 纳入扩展名白名单（`theme:pack` 与 CI 同判）
+
 
 ### i18n 模式
 
