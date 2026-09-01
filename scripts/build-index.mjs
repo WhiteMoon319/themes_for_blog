@@ -19,9 +19,10 @@ function readManifestFromZip(slug) {
   if (!existsSync(zipPath)) return { err: '缺 zip 工件' };
   try {
     const entries = unzipSync(new Uint8Array(readFileSync(zipPath)));
+    // 优先精确路径；回退仅限单层 `<x>/theme.json`，防误取 layouts/ 等深层同名文件
     const key =
       Object.keys(entries).find((k) => k === `${slug}/theme.json`) ||
-      Object.keys(entries).find((k) => k.endsWith('/theme.json'));
+      Object.keys(entries).find((k) => k.split('/').length === 2 && k.endsWith('/theme.json'));
     if (!key) return { err: '包内缺 theme.json' };
     return { manifest: JSON.parse(new TextDecoder().decode(entries[key])) };
   } catch (e) {

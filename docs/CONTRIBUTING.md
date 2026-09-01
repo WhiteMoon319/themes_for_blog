@@ -31,7 +31,7 @@ pnpm theme:pack src/themes/<slug>
 # 产物 dist/themes/<slug>.zip，附校验报告；报告全绿再投稿
 ```
 
-硬限制：zip ≤10MB、条目 ≤200、单文件 ≤512KB、扩展名白名单（.astro/.ts/.json/.css/.png/.jpg/.svg/.woff/.woff2/.md）、slug `^[a-z0-9][a-z0-9-]{1,30}$` 且不得为保留字（classic/modern）。
+硬限制：zip ≤4MB、条目 ≤200、单文件 ≤512KB、扩展名白名单（.astro/.ts/.json/.css/.png/.jpg/.svg/.webp/.woff/.woff2/.md）、slug `^[a-z0-9][a-z0-9-]{1,30}$` 且不得为保留字（classic/modern）。
 
 ## 三、提交 PR（三件套）
 

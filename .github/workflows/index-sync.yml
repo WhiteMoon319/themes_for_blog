@@ -1,6 +1,9 @@
 name: index-sync
 
 # 主题合入 main 后自动重建根 README 的一览表（THEMES 标记区间）
+# ⚠️ 该工作流以 github-actions[bot] 直推 main：若 main 开启分支保护（Require PR/status checks），
+#    需为 bot 账号或 GITHUB_TOKEN 配置 bypass 权限（或改用带权限的 PAT/App token），否则 push 会被拒、
+#    一览表永久滞后。README 也已声明此前置条件。
 on:
   push:
     branches: [main]
@@ -44,12 +47,22 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add README.md
             git commit -m "chore(index): 自动同步主题一览表"
-            if ! git pull --rebase origin main 2>/dev/null; then
-              echo "rebase 失败（可能发生冲突），放弃本次推送"
-              git rebase --abort 2>/dev/null || true
-              exit 1
-            fi
-            git push
+            # 竞态重试：并发/人工 push 冲突时 fetch+rebase 后再推（最多 3 次）
+            for attempt in 1 2 3; do
+              if git push; then
+                echo "pushed on attempt $attempt"
+                exit 0
+              fi
+              echo "push failed (attempt $attempt/3)，fetch+rebase 后重试…"
+              git fetch origin
+              if ! git rebase origin/main 2>/dev/null; then
+                echo "rebase 失败（发生冲突），放弃本次推送"
+                git rebase --abort 2>/dev/null || true
+                exit 1
+              fi
+            done
+            echo "重试 3 次仍未推送成功，放弃（下次主题变更会重新生成一览表）"
+            exit 1
           else
             echo "no changes"
           fi

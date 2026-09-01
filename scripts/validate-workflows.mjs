@@ -24,6 +24,9 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
 function checkStructure(doc) {
   const problems = [];
   if (!isPlainObject(doc)) return ['工作流顶层必须为对象'];
+  // GitHub Actions 对缺失 on 的 yml 视为无效工作流（静默不运行），必须显式存在
+  if (doc.on === undefined || doc.on === null) problems.push('缺少 on（事件触发器）');
+  if (doc.on === '') problems.push('on 为空');
   if (!isPlainObject(doc.jobs) || Object.keys(doc.jobs).length === 0) {
     problems.push('缺少 jobs（必须为非空对象）');
   }
@@ -34,8 +37,8 @@ function checkStructure(doc) {
     if (!Array.isArray(job.steps) || job.steps.length === 0) problems.push(`job "${jobName}" 缺少 steps（非空数组）`);
     for (const [i, s] of (job.steps ?? []).entries()) {
       if (!isPlainObject(s)) { problems.push(`job "${jobName}" steps[${i}] 非对象`); continue; }
-      if (!s.uses && !s.run && !s.if && !s.env && !s.with && !s.name) {
-        problems.push(`job "${jobName}" steps[${i}] 既无 uses 也无 run`);
+      if (!s.uses && !s.run) {
+        problems.push(`job "${jobName}" steps[${i}] 必须含 uses 或 run`);
       }
     }
   }
