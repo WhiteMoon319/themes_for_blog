@@ -110,9 +110,9 @@ export const myT = (locale: Locale) => makeT(locale, dicts);
 
 | 模板 | 关键 Props（除 ctx 外） |
 |---|---|
-| home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` |
+| home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` + 可选 `recentReadings?`（登录用户阅读历史，空数组/未登录不渲染「历史记录」区块） |
 | collection | `jsonLd,collection,posts,total,page,totalPages` |
-| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref` |
+| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?`（登录用户上次阅读位置 0-100，进入时恢复滚动；离开页面静默上报） |
 | standalone | `title,description?,hero?:{kicker,lead},html,fallbackHtml?` |
 | archive | `total,page,totalPages,groups` |
 | search | `q,tagMode,tagNotFound,results` |
