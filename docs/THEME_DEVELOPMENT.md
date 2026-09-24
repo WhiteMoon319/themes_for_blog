@@ -8,8 +8,8 @@
 <slug>/
 ├─ theme.json                  # 必需（字段见 §2）
 ├─ layouts/BaseLayout.astro    # 硬必需（缺失拒绝安装）
-├─ templates/                  # 核心 9 个软必需（缺失逐文件回退 classic 并警告）
-│  home / collection / post / standalone / archive
+├─ templates/                  # 核心 10 个软必需（缺失逐文件回退 classic 并警告）
+│  home / collection / post / author / standalone / archive
 │  search / not-found / tag-index / tag-detail .astro
 ├─ components/                 # 可选覆盖：ArticleEnhancer / Comments / Pagination / PostLike / TagResults
 ├─ styles/tokens.css base.css  # 随 BaseLayout 引入；变量名必须与 classic 同名（见 §5）
@@ -54,7 +54,7 @@
 | slogan / footerLine / tagline | string | 口号 / 页脚文案行 / 默认 meta 描述 |
 | searchPlaceholder / heroNote | string | 搜索占位 / 首页题记（空串不展示） |
 | locale | `"zh-CN" \| "en"` | 站点语言 |
-| user | `{loggedIn,name,isAdmin,emailVerified}` | 会话摘要 |
+| user | `{loggedIn,name,isAdmin,emailVerified,isAuthor,authorHref,writeHref}` | 会话摘要；`isAuthor`=作者或管理员，`authorHref` 为作者页路径（无作者页时 null），`writeHref` 为写作区入口（读者为 null） |
 | nav | `{key:'home'\|'archive'\|'tags'\|'search'\|'about', href}[]` | 路由键+地址，词汇由主题翻译 |
 | r2Base | string | R2 公开基址（评论图片用） |
 
@@ -110,17 +110,45 @@ export const myT = (locale: Locale) => makeT(locale, dicts);
 
 | 模板 | 关键 Props（除 ctx 外） |
 |---|---|
-| home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` + 可选 `recentReadings?`（登录用户阅读历史，空数组/未登录不渲染「历史记录」区块） |
-| collection | `jsonLd,collection,posts,total,page,totalPages` |
-| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?`（登录用户上次阅读位置 0-100，进入时恢复滚动；离开页面静默上报） |
+| home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` + 可选 `recentReadings?`（登录用户阅读历史，空数组/未登录不渲染「历史记录」区块）、`authorsByPost?`（文章署名，按文章 id 索引）、`collectionOwners?`（文集集主，按文集 id 索引） |
+| collection | `jsonLd,collection,posts,total,page,totalPages` + 可选 `owner?`（集主署名，可能为 null）、`authorsByPost?` |
+| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?,authors?`（署名作者数组，见 §6.1） |
+| author | `author`（作者徽标）、`total,page,totalPages,posts,joinedAt` + 可选 `avatarUrl?,jsonLd?`（ProfilePage） |
 | standalone | `title,description?,hero?:{kicker,lead},html,fallbackHtml?` |
-| archive | `total,page,totalPages,groups` |
-| search | `q,tagMode,tagNotFound,results` |
-| tag-index | `selected,keyword,tags,collections,posts,collectionPosts` |
-| tag-detail | `name,keyword,collectionsCount,postsCount,collections,posts,collectionPosts` |
+| archive | `total,page,totalPages,groups` + 可选 `authorsByPost?` |
+| search | `q,tagMode,tagNotFound,results` + 可选 `authorHits?`（关键词命中的作者）、`authorsByPost?` |
+| tag-index | `selected,keyword,tags,collections,posts,collectionPosts` + 可选 `authorsByPost?` |
+| tag-detail | `name,keyword,collectionsCount,postsCount,collections,posts,collectionPosts` + 可选 `authorsByPost?` |
 | not-found / login / register / account / logout / verify-email | 仅 `ctx` |
 
 行对象形态照抄 `themes/classic/templates/` 内同名 interface（CollectionRow/PostRow/TocItem/AdjacentLink…），新主题直接复制类型定义即可。
+
+### 6.1 多作者署名（作者徽标）
+
+署名统一渲染为「作者徽标」数组，形态由核心给全，主题只排版：
+
+```ts
+interface AuthorBadge {
+  id: number;
+  name: string;        // 笔名优先，无笔名回退用户名
+  username: string;
+  avatarUrl: string;
+  bio: string;
+  href: string | null; // 作者页路径；封禁或身份不符时为 null → 署名降级为纯文本
+}
+```
+
+- 有序：数组顺序即展示顺序，**第一位是主作者**。
+- **封禁作者的署名必须降级为纯文本**（`href === null` 时不要渲染 `<a>`），文章与署名本身保留。
+- 核心提供现成组件，主题一行接入即可（推荐，四套官方主题均如此）：
+
+```astro
+import AuthorByline from '@core/AuthorByline.astro';
+<AuthorByline authors={authors} prefix={t('post.byline')} variant="post" />
+```
+
+`variant` 取值 `post | card | collection`；主题可用 `.byline*` 类覆写样式。`authorsByPost` 是以文章 id 为键的普通对象（`Record<string, AuthorBadge[]>`），列表卡里用 `authorsByPost[String(p.id)] ?? []`。
+
 
 ## 7. 语义锚点（e2e 与功能组件依赖，不可改名）
 

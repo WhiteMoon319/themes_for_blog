@@ -15,7 +15,7 @@ BLOG_THEME=<slug> pnpm dev      # 实时预览调试
 ```
 <slug>/
 ├─ theme.json          # name/slug/version/engine_version="1"/author/license
-├─ templates/          # home/collection/post/standalone/archive/search/not-found/tag-index/tag-detail（软必需）
+├─ templates/          # home/collection/post/author/standalone/archive/search/not-found/tag-index/tag-detail（软必需）
 │                      # login/register/account/logout/verify-email 可选覆盖
 ├─ layouts/BaseLayout.astro   # 硬必需
 ├─ components/ styles/ scripts/   # 可选；缺失文件自动回退 classic
