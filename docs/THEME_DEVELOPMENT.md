@@ -112,7 +112,7 @@ export const myT = (locale: Locale) => makeT(locale, dicts);
 |---|---|
 | home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` + 可选 `recentReadings?`（登录用户阅读历史，空数组/未登录不渲染「历史记录」区块）、`authorsByPost?`（文章署名，按文章 id 索引）、`collectionOwners?`（文集集主，按文集 id 索引） |
 | collection | `jsonLd,collection,posts,total,page,totalPages` + 可选 `owner?`（集主署名，可能为 null）、`authorsByPost?` |
-| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?,authors?`（署名作者数组，见 §6.1） |
+| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?,authors?`（署名作者数组，见 §6.1）、`layout?`（全文样式预设 `''/wechat/magazine/warm`，见 §6.2） |
 | author | `author`（作者徽标）、`total,page,totalPages,posts,joinedAt` + 可选 `avatarUrl?,jsonLd?`（ProfilePage） |
 | standalone | `title,description?,hero?:{kicker,lead},html,fallbackHtml?` |
 | archive | `total,page,totalPages,groups` + 可选 `authorsByPost?` |
@@ -148,6 +148,20 @@ import AuthorByline from '@core/AuthorByline.astro';
 ```
 
 `variant` 取值 `post | card | collection`；主题可用 `.byline*` 类覆写样式。`authorsByPost` 是以文章 id 为键的普通对象（`Record<string, AuthorBadge[]>`），列表卡里用 `authorsByPost[String(p.id)] ?? []`。
+
+### 6.2 全文样式预设（`layout` prop）
+
+页面壳把 `post.layout` 传给文章模板；模板用 `articleLayoutClass(layout)`（从 `@core/utils` 引用）把它并进正文容器 class，其余不变：
+
+```astro
+import { articleLayoutClass } from '@core/utils';
+const bodyClass = ['article-body', 'reveal', 'in', articleLayoutClass(layout)].filter(Boolean).join(' ');
+<div class={bodyClass} set:html={html} />
+```
+
+预设样式（字号/行距/字距/两端缩进/首行缩进）定义在核心 `blocks.css` 的 `.article-body.layout-wechat|magazine|warm` 下，**任何主题默认即生效**，主题可覆盖。`layout` 缺省或为空串时 `articleLayoutClass` 返回空串，行为与旧版一致。
+
+正文里的排版块由核心渲染为固定锚点 `.blk .blk-<name> .is-<variant>`（如 `.blk-callout.is-warning`），块样式同样由核心 `blocks.css` 全局注入——主题只需保证正文容器带 `.article-body` 类即可承载，无需额外实现。
 
 
 ## 7. 语义锚点（e2e 与功能组件依赖，不可改名）
