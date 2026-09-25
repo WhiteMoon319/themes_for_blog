@@ -65,6 +65,8 @@
 | `@core/SiteHead.astro` | CSP/canonical/og/twitter/noindex/RSS 封装。Props：`ctx,title?,description?,keywords?,noindex?,image?,faviconHref?,rssTitle?`。**主题不得自行拼装安全头** |
 | `@core/utils` | `postHref(slug, collectionSlug?)`、`fmtDate(iso)`、`yearOf(iso)` |
 | `@core/i18n` | `makeT(locale, dicts)`、`LOCALES`、`isLocale`、`ogLocale` |
+| `@core/CardLink.astro` | 卡片主链接。Props：`href`。以 `::after` 铺满最近的定位祖先（卡片容器）承接整卡点击——列表卡**不要整卡套 `<a>`**，用法见 §6.2 |
+| `@core/AuthorByline.astro` | 署名徽标。Props：`authors,prefix?,variant?,class?`，详见 §6.1 |
 
 ### tokens 必备变量（易踩坑）
 
@@ -77,6 +79,8 @@
 - 字体/圆角/阴影/动效：`--font-*` `--radius-*` `--shadow-*` `--ease*` `--duration*`
 
 可额外新增主题私有变量（如 `--wf-flame-grad`），但不得依赖未被 classic 定义的变量名。
+
+可选变量：`--focus-ring` 控制 `@core/CardLink` 的焦点环颜色（缺省 `currentColor`）；定义与否都不报错，未定义时焦点环用当前文字色。
 
 ### 5.1 主题自有资源（自包含）
 
@@ -150,6 +154,25 @@ import AuthorByline from '@core/AuthorByline.astro';
 `variant` 取值 `post | card | collection`；主题可用 `.byline*` 类覆写样式。`authorsByPost` 是以文章 id 为键的普通对象（`Record<string, AuthorBadge[]>`），列表卡里用 `authorsByPost[String(p.id)] ?? []`。
 
 
+### 6.2 列表卡结构（避免 `<a>` 嵌套）
+
+列表卡（home / collection / search / archive / author / TagResults）**容器用 `<div>`，标题用 `@core/CardLink` 承接整卡点击**：
+
+```astro
+import CardLink from '@core/CardLink.astro';
+<div class="post-card reveal">
+  <h3 class="post-title"><CardLink href={postHref(p.slug, col?.slug)}>{p.title}</CardLink></h3>
+  <p class="post-summary">{p.summary}</p>
+  <div class="post-meta">
+    <AuthorByline authors={authorsByPost[String(p.id)] ?? []} variant="card" />
+  </div>
+</div>
+```
+
+- **不要**写成 `<a class="post-card" href=…>` 整卡包裹：卡内 `AuthorByline` 本身含作者页 `<a>`，整卡套 `<a>` 会形成 `<a>` 嵌套 `<a>`（非法 DOM，浏览器会拆解、点击行为不可预期）。
+- `CardLink` 的 `::after` 以 `z-index:1` 铺满**最近的定位祖先**，因此**卡片容器必须 `position: relative`**；卡内其它链接（署名）靠 `AuthorByline` 自带的 `z-index:2` 浮在覆盖层之上，主题不得把该层压到覆盖层之下。
+- 卡片焦点环由 `CardLink` 的 `:focus-visible::after` 提供（颜色可经 `--focus-ring` 定制），主题无需再为 `.post-card:focus-visible` 写 outline。
+
 ## 7. 语义锚点（e2e 与功能组件依赖，不可改名）
 
 - section id：`top/portals/pinned/latest/about/epigraph`
@@ -169,3 +192,5 @@ pnpm theme:pack src/themes/<slug>   # 自检报告全绿 → dist/themes/<slug>.
 ```
 
 投稿三件套与本仓 CI 审查项见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+> **依赖顺序（易踩坑）**：主题引用的 `@core/*` 组件必须在引擎 ref（`BLOG_ENGINE_REF`，默认 `main`）中已存在。若主题用了主仓较新的核心组件（如 `@core/CardLink.astro`），要**先等该组件合入主仓**再投稿——否则本仓 CI 的构建冒烟会失败、使用者 `theme:add` 也会解析不到。
