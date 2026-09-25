@@ -14,7 +14,7 @@
 
 > 本表由 CI 在合入 main 后自动重建（`scripts/build-index.mjs`），请勿手工编辑标记区间；投稿时在 **theme.json 内** 写好 `description` 即可。
 
-> 投稿新主题 = PR 新增 `<slug>/` 文件夹（内含 `<slug>.zip` 与 `README.md`）并在上表加一行。见 [CONTRIBUTING](./CONTRIBUTING.md)。
+> 投稿新主题 = PR 新增 `<slug>/` 文件夹（内含 `<slug>.zip` 与 `README.md`）并在上表加一行。见 [CONTRIBUTING](./docs/CONTRIBUTING.md)。
 
 ## 使用者安装
 
