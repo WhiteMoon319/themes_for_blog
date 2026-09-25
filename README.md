@@ -7,6 +7,7 @@
 
 | 主题 | 简介 | 版本 / 契约 |
 |---|---|---|
+| [Clarity 澄明](./clarity/) | 移植自班务平台的现代极简主题：Vercel 式 border 层级、Linear 状态点、Apple 半透明导航，冷灰底配蓝色强调，亮暗双模式。 | v1.0.0 · engine 1 |
 | [Starter 起步模板](./starter/) | classic 纸墨风的可直接改造副本 | v1.1.0 · engine 1 |
 | [Wildfire 野火](./wildfire/) | 暖象牙纸面 + 火焰渐变签名 + 切角几何的现代竞技风 | v1.1.0 · engine 1 |
 <!-- THEMES:END -->
