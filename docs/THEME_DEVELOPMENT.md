@@ -12,7 +12,9 @@
 │  home / collection / post / author / standalone / archive
 │  search / not-found / tag-index / tag-detail .astro
 ├─ components/                 # 可选覆盖：ArticleEnhancer / Comments / Pagination / PostLike / TagResults
-├─ styles/tokens.css base.css  # 随 BaseLayout 引入；变量名必须与 classic 同名（见 §5）
+├─ styles/                     # tokens.css base.css 随 BaseLayout 引入；变量名必须与 classic 同名（见 §5）
+│  └─ fonts.css                # 可选：自托管 @font-face（依赖站点侧已上传切片，见 §5.2）
+├─ i18n.ts                     # 主题词典（zh-CN / en，见 §5「i18n 模式」）
 ├─ assets/                     # 主题自有静态资源（图片/字体等，经 Vite 引用，见 §5.1）
 ├─ scripts/*.ts                # 主题自有脚本
 ├─ README.md                   # 必需：见下方「CI 强制项」
@@ -40,6 +42,8 @@
 }
 ```
 
+**`engine_version` 的语义**：当前引擎只校验该字段**存在且为非空字符串**（登记用途），值不匹配**不会**拒绝安装——上架前的兼容性由人工复审与构建冒烟把关。约定是引擎契约只增不删、废弃项标注 `deprecated` 并至少保留两个次版本；引擎若将来收紧校验，会先在此处写明。
+
 ## 3. 数据纯净层（红线）
 
 - 模板/组件 **禁止**：访问 D1、`envOf`、`resolveUser`、import `lib/db|lib/auth`、`astro:env`、`node:*`、`cloudflare:*`
@@ -63,7 +67,7 @@
 | 导入 | 内容 |
 |---|---|
 | `@core/SiteHead.astro` | CSP/canonical/og/twitter/noindex/RSS 封装。Props：`ctx,title?,description?,keywords?,noindex?,image?,faviconHref?,rssTitle?`。**主题不得自行拼装安全头** |
-| `@core/utils` | `postHref(slug, collectionSlug?)`、`fmtDate(iso)`、`yearOf(iso)` |
+| `@core/utils` | `postHref(slug, collectionSlug?)`、`fmtDate(iso)`、`yearOf(iso)`、`articleLayoutClass(layout)`（全文样式预设 → `layout-wechat`/`layout-magazine`/`layout-warm`/空串，见 §5.3） |
 | `@core/i18n` | `makeT(locale, dicts)`、`LOCALES`、`isLocale`、`ogLocale` |
 | `@core/CardLink.astro` | 卡片主链接。Props：`href`。以 `::after` 铺满最近的定位祖先（卡片容器）承接整卡点击——列表卡**不要整卡套 `<a>`**，用法见 §6.2 |
 | `@core/AuthorByline.astro` | 署名徽标。Props：`authors,prefix?,variant?,class?`，详见 §6.1 |
@@ -98,6 +102,28 @@
 - ❌ 禁止：`url("/x.webp")` 站内绝对路径引用主题自有资源（全局共享、主题不自包含），以及任何经 `public/` 打进去的主题图片
 - 校验器已把 `.webp` 纳入扩展名白名单（`theme:pack` 与 CI 同判）
 
+### 5.2 字体（不要引外链字体域）
+
+引擎的 CSP 由 `<SiteHead>` 统一下发，**`font-src` 只放行同源**（站长配了 `FONTS_BASE` 时再加那一个 CDN 来源）。因此：
+
+- ❌ **不要**在 `<head>` 里引 `fonts.googleapis.com` / `fonts.gstatic.com` 之类外链字体域——`style-src` 与 `font-src` 都会拦下，字体静默回退系统字体，控制台还会刷 CSP 违规。
+- ✅ **系统字体栈是默认且稳妥的做法**：`--font-*` 给全中英文兜底（`PingFang SC` / `Microsoft YaHei` / `Source Han *` / `STKaiti` 等），任何站点都成立。
+- ✅ **少量字面自包含**（拉丁展示字、图标字）：放进 `assets/` 用相对 `url()`，由 Vite 构建期发射（同 §5.1）。
+- ⚠️ **CJK webfont 属于站点资源**：主仓用 `scripts/fonts-prepare.mjs` + `fonts-upload.mjs` 把细切 woff2（按 unicode-range，每字重约 97 片）上传到**站长的 R2**，主题再带一份 `styles/fonts.css` 指向 `/api/files/fonts/<prefix>/woff2/…`（引擎构建期按 `FONTS_BASE` 改写前缀并同步放宽 `font-src`）。**注意它是站点侧资源**：站长没跑过那条流水线的站点上这些 URL 会 404、字体回退。所以第三方主题的默认做法应是系统字体栈，只有确认目标站点上传过切片，才把 `fonts.css` 当增强带上。
+
+### 5.3 全文样式预设与排版块
+
+页面壳会把后台「全文样式」的选择透传给 `post` 模板的 `layout` prop（`''` / `wechat` / `magazine` / `warm`；`preview/[id]` 复用 post 模板同样传）。核心已把对应样式注入 `blocks.css`，主题只需用 `articleLayoutClass(layout)` 把它并进正文容器：
+
+```astro
+import { articleLayoutClass } from '@core/utils';
+const bodyClass = ['article-body', 'reveal', 'in', articleLayoutClass(layout)].filter(Boolean).join(' ');
+<div class={bodyClass} set:html={html} />
+```
+
+- 不接也能跑（预设样式挂在前述 class 上），但站点后台选了预设却看不到效果；
+- `:::` 排版块（callout、卡片等）由核心渲染成固定锚点 `.blk .blk-<name> .is-<variant>`，样式同样来自核心 `blocks.css`——主题只要保证正文容器带 `article-body` 类即可承载。
+
 
 ### i18n 模式
 
@@ -116,7 +142,7 @@ export const myT = (locale: Locale) => makeT(locale, dicts);
 |---|---|
 | home | `siteName,slogan,poem,collections,pinnedPosts,latestPosts` + 可选 `recentReadings?`（登录用户阅读历史，空数组/未登录不渲染「历史记录」区块）、`authorsByPost?`（文章署名，按文章 id 索引）、`collectionOwners?`（文集集主，按文集 id 索引） |
 | collection | `jsonLd,collection,posts,total,page,totalPages` + 可选 `owner?`（集主署名，可能为 null）、`authorsByPost?` |
-| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?,authors?`（署名作者数组，见 §6.1） |
+| post | `postId,title,summary?,coverUrl?,keywords?,createdAt,updatedAt,viewCount,html,toc,tags?,prev?/next?,accentColor,backHref,backLabel,kicker` + 可选 `layout?`（全文样式预设，交给 `articleLayoutClass`，见 §5.3）、`ogImage,noindex,jsonLd,likes,liked,showComments,isPreview,previewBadgeText,publishedHref,initialScrollPct?,authors?`（署名作者数组，见 §6.1） |
 | author | `author`（作者徽标）、`total,page,totalPages,posts,joinedAt` + 可选 `avatarUrl?,jsonLd?`（ProfilePage） |
 | standalone | `title,description?,hero?:{kicker,lead},html,fallbackHtml?` |
 | archive | `total,page,totalPages,groups` + 可选 `authorsByPost?` |
