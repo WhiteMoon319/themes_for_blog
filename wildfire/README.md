@@ -9,7 +9,7 @@
 - **火焰渐变签名**：主按钮、kicker 文字、导航底线的 `linear-gradient(135deg, #fbbf24 → #f97316 → #ef4444 → #f43f5e)`
 - **切角几何**：卡片与按钮的 clipped-corner 多边形轮廓
 - **双强调色**：火焰橙为主、春绿（#65a30d）为辅的「燎原/新生」双色叙事
-- **Space Grotesk / Rajdhani / Noto Sans SC** 三字体栈，数字与小标题带竞技感字距
+- **Space Grotesk / Rajdhani 字面 + Noto Sans 系数字栈**：仅走系统字体栈（引擎 CSP 只放行同源字体，外链字体域会被拦下）；装了同类字体的设备会优先命中，否则回退系统中文字体
 - 暖象牙多层纸面 + 双团 radial 光晕氛围 + 细颗粒纹理；深浅双模式
 - 自带 TagResults 覆盖与现代语态词典（zh-CN / en）
 - **多作者署名**：文章页与列表卡署名（第一位为主作者）、文集页集主、搜索结果作者分区、独立作者页
@@ -33,6 +33,18 @@ engine_version: **1** · 基于 classic 全量模板改写 · 认证页回退 cl
 AGPL-3.0-or-later
 
 ## 更新日志
+
+### 1.1.2
+- 移除 Google Fonts 外链（引擎 CSP 只放行同源字体，外链字体域会被拦下、字体静默回退）；
+  字体栈补齐系统中英文字体兜底，需要 webfont 请自包含到 `assets/` 用相对 `url()` 引用
+- 修复类型落后于引擎：`tag-index` / `tag-detail` 的 `UnionPost` 补 `id`
+  （引擎多作者改造后列表行带 id，缺失会与 `TagResults` 声明的 PostRow 类型不匹配）
+- 修复 `archive` / `collection` / `home` / `post` 四个模板里重复 import `SiteContext`
+  （同一标识符导入两次，typecheck 报 Duplicate identifier）
+
+### 1.1.1
+- 列表卡改用 `@core/CardLink`，修复卡内署名链接嵌套 `<a>` 的非法 DOM 与点击行为
+  （本次补记：该版本的 zip 已发布但当时漏写更新日志）
 
 ### 1.1.0
 - 新增 `author` 作者页模板（ProfilePage JSON-LD + 分页）

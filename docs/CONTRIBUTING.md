@@ -22,7 +22,7 @@ BLOG_THEME=<slug> pnpm dev      # 实时预览调试
 └─ README.md           # 随包说明
 ```
 
-红线：模板内禁止访问 DB/env（一切经 props 的 SiteContext）；禁止 import `lib/db`、`lib/auth`、`astro:env`、`node:*`；纯函数用 `@core/utils`。
+红线：模板内禁止访问 DB/env（一切经 props 的 SiteContext）；禁止 import `lib/db`、`lib/auth`、`astro:env`、`node:*`；纯函数用 `@core/utils`。**禁止引外链字体域**（`fonts.googleapis.com` 等会被 CSP 拦下，字体静默回退——见契约 §5.2）。
 
 ## 二、打包自检
 

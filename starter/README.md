@@ -32,6 +32,18 @@ AGPL-3.0-or-later
 
 ## 更新日志
 
+### 1.1.2
+- 移除 Google Fonts 外链（引擎 CSP 只放行同源字体，外链字体域会被拦下、字体静默回退）；
+  字体改为纯系统字体栈，需要 webfont 请自包含到 `assets/` 用相对 `url()` 引用
+- 修复标签详情页报错：`tag-detail.astro` 引用了未声明的 `authorsByPost`（渲染时抛 ReferenceError），
+  现与 tag-index 一致地声明并从 props 取值
+- 修复类型落后于引擎：`tag-index` / `tag-detail` 的 `UnionPost` 补 `id`
+  （引擎多作者改造后列表行带 id，缺失会与 `TagResults` 声明的 PostRow 类型不匹配）
+
+### 1.1.1
+- 列表卡改用 `@core/CardLink`，修复卡内署名链接嵌套 `<a>` 的非法 DOM 与点击行为
+  （本次补记：该版本的 zip 已发布但当时漏写更新日志）
+
 ### 1.1.0
 - 新增 `author` 作者页模板（含 ProfilePage JSON-LD、分页）
 - 文章页与各类列表卡新增署名区（`authors` / `authorsByPost` props），文集页新增集主署名（`owner`）
