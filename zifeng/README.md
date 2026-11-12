@@ -89,11 +89,26 @@ pnpm build && pnpm start
 
 ### 二、通过源码目录安装
 
-把本主题的整个目录复制到主仓的 `src/themes/zifeng/`，然后同步 `tsconfig.json` 的 `@theme/*` 路径别名（推荐用主仓脚本自动处理）：
+主题仓里只放了**打包产物** `zifeng.zip`，`theme.json` / `templates/` / `layouts/` / `styles/` 这些源码在 zip 内部，不在仓库目录里。因此不能直接复制 `zifeng/` 文件夹——那样只会得到 `README.md`、`zifeng.zip` 和 `shots/`，`pnpm theme zifeng` 会因为找不到 `theme.json` 而失败。
+
+正确做法是先解包：
 
 ```bash
+# 1) 取到 zip 并解出 zifeng/ 源码树
+unzip zifeng.zip -d /tmp/zifeng-src
+
+# 2) 把解出的主题目录放进主仓
+cp -r /tmp/zifeng-src/zifeng <博客主仓>/src/themes/zifeng
+
+# 3) 切换主题（会同步 tsconfig 的 @theme/* 别名）
+cd <博客主仓>
 pnpm theme zifeng
+
+# 4) 构建并启动
+pnpm build && pnpm start
 ```
+
+解包后应能看到 `theme.json`、`layouts/BaseLayout.astro`、`templates/*.astro`、`styles/tokens.css` 等文件；若没有，说明复制的是仓库目录而不是 zip 内容。
 
 ### 三、环境要求
 
